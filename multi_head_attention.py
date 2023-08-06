@@ -14,13 +14,9 @@ from typing import Optional, List
 import torch
 from torch import nn
 
-from labml import tracker
-
 
 class PrepareForMultiHeadAttention(nn.Module):
     """
-    <a id="PrepareMHA"></a>
-
     ## Prepare for multi-head attention
 
     This module does a linear transformation and splits the vector into given
@@ -38,12 +34,13 @@ class PrepareForMultiHeadAttention(nn.Module):
         self.d_k = d_k
 
     def forward(self, x: torch.Tensor):
-        # Input has shape `[seq_len, batch_size, d_model]` or `[batch_size, d_model]`.
+        # Input has shape `[seq_len, batch_size, d_model]`.
         # We apply the linear transformation to the last dimension and split that into
         # the heads.
+        # Get all shapes except the last dimension (features) to convert [seq_len, batch_size, d_model] to [seq_len, batch_size, heads, d_k]
         head_shape = x.shape[:-1]
 
-        # Linear transform
+        # Linear transform to get the proper dimension for multi-head attention of query, value, and values.
         x = self.linear(x)
 
         # Split last dimension into heads
@@ -54,12 +51,11 @@ class PrepareForMultiHeadAttention(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    r"""
-    <a id="MHA"></a>
+    """
 
     ## Multi-Head Attention Module
 
-    This computes scaled multi-headed attention for given `query`, `key` and `value` vectors.
+    This computes scaled multi-headed attention for given `query`, `key`, and `value` vectors.
 
     $$\mathop{Attention}(Q, K, V) = \underset{seq}{\mathop{softmax}}\Bigg(\frac{Q K^\top}{\sqrt{d_k}}\Bigg)V$$
 
@@ -165,7 +161,7 @@ class MultiHeadAttention(nn.Module):
         # Scale scores $\frac{Q K^\top}{\sqrt{d_k}}$
         scores *= self.scale
 
-        # Apply mask
+        # Apply mask. if mask value is zero, replace score with -inf.
         if mask is not None:
             scores = scores.masked_fill(mask == 0, float('-inf'))
 
